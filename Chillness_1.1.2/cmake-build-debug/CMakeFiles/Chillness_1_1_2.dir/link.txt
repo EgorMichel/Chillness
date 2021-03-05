@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/Chillness_1_1_2.dir/main.cpp.o  -o Chillness_1_1_2 

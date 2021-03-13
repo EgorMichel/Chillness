@@ -16,8 +16,8 @@ using std::cout;
 using std::endl;
 
 //Global variables---------------------
-unsigned int height = 1500;
-unsigned int width = 2000;
+unsigned int height = 800;
+unsigned int width = 1500;
 unsigned int population = 20;
 float base_size = 100;
 float energy = 100;
@@ -27,6 +27,68 @@ sf::Font font;
 //Global functions---------------------
 float distance(float x1, float y1, float x2, float y2){
     return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
+}
+
+class Base;
+
+//Animal interface--------------------------------------------------------
+class Animal
+{
+public:
+    virtual void move(float x, float y) = 0;
+    virtual void eat(float x, float y) = 0;
+    virtual void attack(Animal* opponent) = 0;
+    virtual void capture(Base* base) = 0;
+
+    int energy;
+    unsigned int strength, price, speed;
+    float x_aim, y_aim, x_pos, y_pos;
+};
+
+//Animal types------------------------------------------------------
+class Simple_Animal: public Animal
+{
+public:
+    void move(float x, float y);
+    void eat(float x, float y);
+    void attack(Animal* opponent);
+    void capture(Base* base);
+    Simple_Animal(float x, float y, float x_pos_, float y_pos_, int energy_, unsigned int strength_, unsigned int price_, unsigned int speed_){
+        energy = energy_;
+        strength = strength_;
+        price = price_;
+        speed = speed_;
+        x_aim = x;
+        y_aim = y;
+        x_pos = x_pos_;
+        y_pos = y_pos_;
+    }
+};
+
+
+//Function definition:
+void Simple_Animal::move(float x, float y){
+    if (x_pos != x_aim){
+        x_pos += 1;
+    }
+    if (y_pos != y_aim){
+        y_pos += 1;
+    }
+}
+
+void Simple_Animal::eat(float x, float y){
+}
+
+void Simple_Animal::attack(Animal* opponent){
+    opponent->energy -= strength;
+    energy -= opponent->strength;
+    if (energy < 0){
+        delete this;
+    }
+}
+
+void Simple_Animal::capture(Base* base){
+
 }
 
 //Base class--------------------------------------------------------
@@ -39,14 +101,17 @@ public:
         this->x = x_;
         this->y = y_;
     }
+    Simple_Animal* buildanimal(unsigned int type, float x_aim, float y_aim, int energy_, unsigned int strength_, unsigned int price_, unsigned int speed_){
+        if (type == 1){
+            Simple_Animal* beast = new Simple_Animal(x_aim, y_aim, x, y, energy_, strength_, price_, speed_);
+            return beast;
+        }
+    }
 };
 
 vector<Base> bases;
 
-//Animal class--------------------------------------------------------
-class Animal
-{
-};
+
 //Board class------------------------------------------------------
 struct Board{
     sf::RectangleShape energy_lvl;
@@ -213,7 +278,7 @@ void Game::initBase() {
 
 //------------------------------------------------------GAME LOOP-------------------------------------------------------
 int main() {
-    font.loadFromFile("/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/20326.otf");
+    font.loadFromFile("/home/egor/Repositories/Chillness/Chillness_1.1.2_/OpenSans-Regular.ttf");
 //Init Game
     Game game;
 //Game loop

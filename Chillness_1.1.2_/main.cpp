@@ -24,88 +24,131 @@ float energy = 100;
 sf::Font font;
 
 
-//Global functions---------------------
-float distance(float x1, float y1, float x2, float y2){
-    return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
+//useful classes
+class Point{
+public:
+    Point() = default;
+    Point(double x_, double y_){
+        x = x_;
+        y = y_;
+    }
+    double get_x() const {return x;}
+    double get_y() const {return y;}
+    void set_x(double a) {x = a;}
+    void set_y(double a) {y = a;}
+    double delta_x(Point a) const;
+    double delta_y(Point a) const;
+    double distance(Point a) const;
+    Point& operator= (Point a){
+        this->set_x(a.get_x());
+        this->set_y(a.get_y());
+        return *this;
+    }
+private:
+    double x = 0;
+    double y = 0;
+};
+
+double Point::delta_x(Point a) const{
+    return std::abs(get_x() - a.get_x());
 }
 
+double Point::delta_y(Point a) const{
+    return std::abs(get_y() - a.get_y());
+}
+
+double Point::distance(Point a) const{
+    return sqrt(delta_x(a) * delta_x(a) + delta_y(a) * delta_y(a));
+}
+
+
+
+//Global functions---------------------
+//float distance(double x1, double x2, double y1, double y2){
+//    return std::sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+//}
+
 class Base;
+
+
 
 //Animal interface--------------------------------------------------------
 class Animal
 {
 public:
-    virtual void move(float x, float y) = 0;
-    virtual void eat(float x, float y) = 0;
+    Animal(int energy_, int strength_, int price_, int speed_, Point aim_, Point pos_){
+        energy = energy_;
+        strength = strength_;
+        price = price_;
+        speed = speed_;
+        aim = aim_;
+        pos = pos_;
+    }
+    virtual void move() = 0;
+    virtual void eat() = 0;
     virtual void attack(Animal* opponent) = 0;
     virtual void capture(Base* base) = 0;
+    int get_energy() const{return energy;}
+    int get_strength() const{return strength;}
+    int get_price() const{return price;}
+    int get_speed() const{return speed;}
+    void set_energy(int energy_) {energy = energy_;}
+    void set_strength(int strength_) {strength = strength_;}
+    void set_price(int price_) {price = price_;}
+    void set_speed(int speed_) {speed = speed_;}
 
-    int energy;
-    unsigned int strength, price, speed;
-    float x_aim, y_aim, x_pos, y_pos;
+protected:
+    int energy, strength, price, speed;
+    Point aim, pos;
 };
+
 
 //Animal types------------------------------------------------------
 class Simple_Animal: public Animal
 {
 public:
-    void move(float x, float y);
-    void eat(float x, float y);
-    void attack(Animal* opponent);
-    void capture(Base* base);
-    Simple_Animal(float x, float y, float x_pos_, float y_pos_, int energy_, unsigned int strength_, unsigned int price_, unsigned int speed_){
-        energy = energy_;
-        strength = strength_;
-        price = price_;
-        speed = speed_;
-        x_aim = x;
-        y_aim = y;
-        x_pos = x_pos_;
-        y_pos = y_pos_;
-    }
+    Simple_Animal(int energy_, int strength_, int price_, int speed_, Point aim_, Point pos_):
+    Animal(energy_, strength_, price_, speed_, aim_, pos_){ }
+    void move() final;
+    void eat() final;
+    void attack(Animal* opponent) final;
+    void capture(Base* base) final;
 };
 
 
 //Function definition:
-void Simple_Animal::move(float x, float y){
-    if (x_pos != x_aim){
-        x_pos += 1;
-    }
-    if (y_pos != y_aim){
-        y_pos += 1;
-    }
+void Simple_Animal::move(){
+    pos.set_x(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim));
+    pos.set_y(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim));
 }
 
-void Simple_Animal::eat(float x, float y){
+void Simple_Animal::eat(){
 }
 
 void Simple_Animal::attack(Animal* opponent){
-    opponent->energy -= strength;
-    energy -= opponent->strength;
+    opponent->set_energy(opponent->get_energy() - strength);
+    energy -= opponent->get_strength();
     if (energy < 0){
         delete this;
     }
 }
 
 void Simple_Animal::capture(Base* base){
-
 }
 
 //Base class--------------------------------------------------------
 class Base{
 public:
     sf::RectangleShape picture;
-    int x, y;
+    Point pos;
     float  size;
-    Base(int x_, int y_){
-        this->x = x_;
-        this->y = y_;
+    Base(Point pos_, float size_){
+        pos = pos_;
+        size = size_;
     }
-    Simple_Animal* buildanimal(unsigned int type, float x_aim, float y_aim, int energy_, unsigned int strength_, unsigned int price_, unsigned int speed_){
-        if (type == 1){
-            Simple_Animal* beast = new Simple_Animal(x_aim, y_aim, x, y, energy_, strength_, price_, speed_);
-            return beast;
-        }
+    Simple_Animal* buildanimal(int energy_, unsigned int strength_, unsigned int price_, unsigned int speed_, Point aim_, Point pos_){
+        auto beast = new Simple_Animal(energy_, strength_, price_, speed_, aim_, pos_);
+        return beast;
     }
 };
 
@@ -258,17 +301,17 @@ void Game::initEnergy_lvl() {
 
 void Game::initBase() {
     bool nearby = false;
-    float x_, y_;
-    x_ = sf::Mouse::getPosition(*this->window).x;
-    y_ = sf::Mouse::getPosition(*this->window).y;
+    Point position(0, 0);
+    position.set_x(sf::Mouse::getPosition(*this->window).x);
+    position.set_y(sf::Mouse::getPosition(*this->window).y);
     for(int i = 0; i < bases.size(); i++){
-        if(distance(x_, y_, bases[i].x, bases[i].y) < base_size*2) nearby = true;
+        if(position.distance(bases[i].pos)) nearby = true;
     }
-    if (nearby == false and energy >= 10 and y_ < 1400) {
+    if (nearby == false and energy >= 10 and position.get_y() < 1400) {
         energy -= 10;
-        Base b = Base(x_, y_);
+        Base b = Base(position, 1);
         b.size = base_size;
-        b.picture.setPosition(b.x, b.y);
+        b.picture.setPosition(b.pos.get_x(), b.pos.get_y());
         b.picture.setSize(sf::Vector2(b.size, b.size));
         b.picture.setFillColor(sf::Color::Yellow);
         b.picture.setOrigin(b.size / 2, b.size / 2);

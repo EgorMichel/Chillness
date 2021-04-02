@@ -80,6 +80,7 @@ public:
         aim = aim_;
         pos = pos_;
         color = green;
+        selected = false;
     }
     virtual void move() = 0;
     virtual void eat() = 0;
@@ -89,10 +90,12 @@ public:
     int get_strength() const{return strength;}
     int get_price() const{return price;}
     int get_speed() const{return speed;}
+    bool is_selected() const{return selected;}
     void set_energy(int energy_) {energy = energy_;}
     void set_strength(int strength_) {strength = strength_;}
     void set_price(int price_) {price = price_;}
     void set_speed(int speed_) {speed = speed_;}
+    void select(bool a) {selected = a;}
     Point get_pos() const {return pos;}
     sf::CircleShape picture;
     const int size = 5;
@@ -101,7 +104,7 @@ public:
     int native_base;
 protected:
     int energy, strength, price, speed;
-
+    bool selected;
 
 };
 
@@ -187,7 +190,7 @@ private:
     //Game objects
     sf::RectangleShape cursor;
     Board board;
-    int x_mouse, y_mouse;
+    Point mouse
 
     //Private functions
     void initVariables();
@@ -200,7 +203,6 @@ public:
     Game();
     void initBase();
     void initAnimal();
-    void initBox();
     void pushButtons();
     virtual ~Game();
 
@@ -208,6 +210,7 @@ public:
     void pollEvents();
     void update();
     void render();
+    void box (vector<Animal> animals);
 };
 
 //Functions definitions:
@@ -382,8 +385,16 @@ void Game::pushButtons() {
         }
     }
 
-void Game::initBox() {
-
+void Game::box (vector<Animal> animals){
+    double xmax = std::max(a1.get_x(), a2.get_x());
+    double xmin = std::min(a1.get_x(), a2.get_x());
+    double ymax = std::max(a1.get_y(), a2.get_y());
+    double ymin = std::min(a1.get_y(), a2.get_y());
+    for (unsigned int i = 0; i < animals.size(); i++){
+        if ((animals[i].get_x() < xmax && animals[i].get_x() > xmin) && (animals[i].get_y() < ymax && animals[i].get_y() > ymin)){
+            animals[i].select(true);
+        }
+    }
 }
 
 //------------------------------------------------------GAME LOOP-------------------------------------------------------

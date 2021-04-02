@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/egorchan/CLionProjects/Chillness/chillnes_1.1.3/main.cpp
+iostream
+-
+cstdlib
+-
+vector
+-
+cmath
+-
+SFML/Graphics.hpp
+-
+SFML/Window.hpp
+-
+

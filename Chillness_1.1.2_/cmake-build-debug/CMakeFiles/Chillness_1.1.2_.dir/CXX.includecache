@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/main.cpp
+iostream
+-
+cstdlib
+-
+vector
+-
+cmath
+-
+chrono
+-
+SFML/Graphics.hpp
+-
+SFML/System.hpp
+-
+SFML/Window.hpp
+-
+SFML/Audio.hpp
+-
+SFML/Network.hpp
+-
+

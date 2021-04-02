@@ -46,12 +46,27 @@ vector<Base> bases;
 //Animal class--------------------------------------------------------
 class Animal
 {
+public:
+    sf::RectangleShape picture;
+    int x, y, native_base;
+    float  size;
+    Animal(int x_, int y_){
+        this->x = x_;
+        this->y = y_;
+        this->size = 10;
+    }
+};
+struct button{
+    sf::RectangleShape picture;
+    sf:: Text caption;
+    bool pushed = 0;
 };
 //Board class------------------------------------------------------
 struct Board{
     sf::RectangleShape energy_lvl;
     sf::RectangleShape energy_lvl_back;
     sf::RectangleShape board;
+    button spawn_base;
     sf::Text energy_lvl_caption;
 };
 
@@ -75,9 +90,10 @@ private:
 
 public:
     //Public functions
-    void initEnergy_lvl();
+    void initBoard();
     Game();
     void initBase();
+    void pushButtons();
     virtual ~Game();
 
     const bool running() const;
@@ -107,7 +123,7 @@ Game::Game() {
     this->initVariables();
     this->initWindow();
     this->initCursor();
-    this->initEnergy_lvl();
+    this->initBoard();
 }
 
 const bool Game::running() const {
@@ -128,6 +144,7 @@ void Game::pollEvents() {
             case sf::Event::MouseButtonPressed:
                 if (this->ev.mouseButton.button == sf::Mouse::Left) {
                     this->initBase();
+                    this->pushButtons();
                     }
                 break;
 
@@ -143,12 +160,13 @@ void Game::update() {
     if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height){
         this->cursor.setFillColor(sf::Color::Red);
         this->cursor.setPosition(x_mouse, y_mouse);
-
         this->board.energy_lvl.setSize(sf::Vector2(energy*10, 50.f));
-
-
     }
     else this->cursor.setFillColor(sf::Color::Green);
+
+    if (board.spawn_base.pushed == 1) board.spawn_base.picture.setFillColor(sf::Color::Red);
+    else board.spawn_base.picture.setFillColor(sf::Color::Green);
+
 }
 
 void Game::render() {
@@ -157,6 +175,7 @@ void Game::render() {
     this->window->draw(this->board.energy_lvl_back);
     this->window->draw(this->board.energy_lvl);
     this->window->draw(this->board.energy_lvl_caption);
+    this->window->draw(this->board.spawn_base.picture);
     this->window->draw(this->cursor);
 
     for(int i = 0; i < bases.size(); i++) this->window->draw(bases[i].picture);
@@ -171,7 +190,7 @@ void Game::initCursor() {
     this->cursor.setOrigin(sf::Vector2(5.f, 5.f));
 }
 
-void Game::initEnergy_lvl() {
+void Game::initBoard() {
     this->board.energy_lvl.setPosition(10, 1420);
     this->board.energy_lvl.setSize(sf::Vector2(energy*10, 50.f));
     this->board.energy_lvl.setFillColor(sf::Color::Blue);
@@ -189,6 +208,11 @@ void Game::initEnergy_lvl() {
     this->board.board.setPosition(10, 1400);
     this->board.board.setSize(sf::Vector2(1900.f, 100.f));
     this->board.board.setFillColor(sf::Color::White);
+
+    this->board.spawn_base.picture.setPosition(1725, 1445);
+    this->board.spawn_base.picture.setSize(sf::Vector2(50.f, 50.f));
+    this->board.spawn_base.picture.setFillColor(sf::Color::Green);
+    this->board.spawn_base.picture.setOrigin(25,25);
 }
 
 void Game::initBase() {
@@ -199,8 +223,8 @@ void Game::initBase() {
     for(int i = 0; i < bases.size(); i++){
         if(distance(x_, y_, bases[i].x, bases[i].y) < base_size*2) nearby = true;
     }
-    if (nearby == false and energy >= 10 and y_ < 1400) {
-        energy -= 10;
+    if (nearby == false and energy >= 30 and y_ < 1300 and board.spawn_base.pushed == true) {
+        energy -= 30;
         Base b = Base(x_, y_);
         b.size = base_size;
         b.picture.setPosition(b.x, b.y);
@@ -208,6 +232,17 @@ void Game::initBase() {
         b.picture.setFillColor(sf::Color::Yellow);
         b.picture.setOrigin(b.size / 2, b.size / 2);
         bases.push_back(b);
+    }
+}
+
+void Game::pushButtons() {
+    int x_mouse, y_mouse;
+    x_mouse = sf::Mouse::getPosition(*this->window).x;
+    y_mouse = sf::Mouse::getPosition(*this->window).y;
+    if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height
+    and abs(x_mouse - board.spawn_base.picture.getPosition().x) < board.spawn_base.picture.getSize().x/2 and
+    abs(y_mouse - board.spawn_base.picture.getPosition().y) < board.spawn_base.picture.getSize().y/2){
+        this->board.spawn_base.pushed = !this->board.spawn_base.pushed;
     }
 }
 

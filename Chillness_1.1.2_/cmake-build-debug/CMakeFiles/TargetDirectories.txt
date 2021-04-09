@@ -1,3 +1,0 @@
-/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/cmake-build-debug/CMakeFiles/Chillness_1.1.2_.dir

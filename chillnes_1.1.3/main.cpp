@@ -191,6 +191,7 @@ private:
     sf::RectangleShape cursor;
     Board board;
     Point mouse;
+    sf::RectangleShape area;
     int x_mouse, y_mouse;
     int x_mouse_0, y_mouse_0;
 
@@ -264,6 +265,7 @@ void Game::pollEvents() {
                 if (this->ev.mouseButton.button == sf::Mouse::Right) {
                     x_mouse_0 = x_mouse;
                     y_mouse_0 = y_mouse;
+                    area.setFillColor(sf::Color(200, 0, 100, 50));
                 }
                 break;
 
@@ -278,7 +280,10 @@ void Game::pollEvents() {
 
 void Game::update() {
     this->pollEvents();
-
+    area.setPosition(x_mouse_0, y_mouse_0);
+    float size_x = x_mouse - x_mouse_0;
+    float size_y = y_mouse - y_mouse_0;
+    area.setSize(sf::Vector2(size_x, size_y));
     Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
     x_mouse = local_mouse.get_x();
     y_mouse = local_mouse.get_y();
@@ -302,28 +307,39 @@ void Game::update() {
 }
 
 void Game::render() {
+    window->clear(sf::Color(5, 0, 90, 255));
+    window->draw(this->board.board);
+    window->draw(this->board.energy_lvl_back);
+    window->draw(this->board.energy_lvl);
+    window->draw(this->board.energy_lvl_caption);
+    window->draw(this->board.spawn_base.picture);
+    window->draw(this->cursor);
 
-    this->window->clear(sf::Color(5, 0, 90, 255));
-    this->window->draw(this->board.board);
-    this->window->draw(this->board.energy_lvl_back);
-    this->window->draw(this->board.energy_lvl);
-    this->window->draw(this->board.energy_lvl_caption);
-    this->window->draw(this->board.spawn_base.picture);
-    this->window->draw(this->cursor);
+
 
     for(auto & base : bases) this->window->draw(base.picture);
     for(auto & animal : animals) {
-        this->window->draw(animal.picture);
+        if (animal.is_selected()) animal.picture.setFillColor(red);
+        else animal.picture.setFillColor(green);
+        window->draw(animal.picture);
     }
+
+    window->draw(this->area);
     this->window->display();
 }
 
 void Game::initCursor() {
-    this->cursor.setSize(sf::Vector2(20.f, 20.f));
-    this->cursor.setFillColor(sf::Color::Magenta);
-    this->cursor.setOutlineColor(sf::Color::Green);
-    this->cursor.setOutlineThickness(1.f);
-    this->cursor.setOrigin(sf::Vector2(5.f, 5.f));
+    cursor.setSize(sf::Vector2(20.f, 20.f));
+    cursor.setFillColor(sf::Color::Magenta);
+    cursor.setOutlineColor(sf::Color::Green);
+    cursor.setOutlineThickness(1.f);
+    cursor.setOrigin(sf::Vector2(5.f, 5.f));
+
+    area.setPosition(sf::Vector2(1.f, 1.f));
+    area.setOrigin(sf::Vector2(1.f, 1.f));
+    area.setSize(sf::Vector2(2.f, 2.f));
+    area.setFillColor(sf::Color(0, 0, 0, 0));
+
 }
 
 void Game::initBoard() {
@@ -406,13 +422,16 @@ void Game::box (){
     double xmin = std::min(a1.get_x(), a2.get_x());
     double ymax = std::max(a1.get_y(), a2.get_y());
     double ymin = std::min(a1.get_y(), a2.get_y());
+
     for (unsigned int i = 0; i < animals.size(); i++){
         if ((animals[i].pos.get_x() < xmax && animals[i].pos.get_x() > xmin) && (animals[i].pos.get_y() < ymax && animals[i].pos.get_y() > ymin)){
             animals[i].select(true);
             animals[i].picture.setFillColor(red);
         }
     }
-
+    x_mouse_0 = 0;
+    y_mouse_0 = 0;
+    area.setFillColor(sf::Color(0, 0, 0, 0));
 }
 
 //------------------------------------------------------GAME LOOP-------------------------------------------------------

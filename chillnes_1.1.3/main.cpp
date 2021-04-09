@@ -263,9 +263,10 @@ void Game::pollEvents() {
                     this->initAnimal();
                 }
                 if (this->ev.mouseButton.button == sf::Mouse::Right) {
+                    //test
                     x_mouse_0 = x_mouse;
                     y_mouse_0 = y_mouse;
-                    area.setFillColor(sf::Color(200, 0, 100, 50));
+                    area.setFillColor(sf::Color(200, 0, 100, 200));
                 }
                 break;
 

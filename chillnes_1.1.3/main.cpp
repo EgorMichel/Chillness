@@ -97,10 +97,13 @@ public:
     void set_speed(int speed_) {speed = speed_;}
     void select(bool a) {selected = a;}
     Point get_pos() const {return pos;}
+    Point set_pos(Point a) {pos = a;}
+    Point get_aim() const {return aim;}
+    Point set_aim(Point a) {aim = a;}
     sf::CircleShape picture;
     const int size = 5;
     sf::Color color;
-    Point aim, pos;
+    Point pos, aim = pos;
     int native_base;
 protected:
     int energy, strength, price, speed;
@@ -247,6 +250,7 @@ const bool Game::running() const {
 }
 
 void Game::pollEvents() {
+    bool were_selected = false;
     while (this->window->pollEvent(this->ev))
     {
         switch(this->ev.type){
@@ -259,20 +263,34 @@ void Game::pollEvents() {
                 break;
             case sf::Event::MouseButtonPressed:
                 if (this->ev.mouseButton.button == sf::Mouse::Left) {
-                    this->pushButtons();
-                    this->initAnimal();
-                }
-                if (this->ev.mouseButton.button == sf::Mouse::Right) {
-                    //test
+                    for (int i = 0; i < animals.size(); i++){
+                        if (animals[i].is_selected()){
+                            animals[i].select(false);
+                        }
+                    }
                     x_mouse_0 = x_mouse;
                     y_mouse_0 = y_mouse;
-                    area.setFillColor(sf::Color(200, 0, 100, 200));
+                    area.setFillColor(sf::Color(200, 0, 100, 100));
+                }
+                if (this->ev.mouseButton.button == sf::Mouse::Right) {
+                    for (int i = 0; i < animals.size(); i++){
+                        if (animals[i].is_selected()){
+                            animals[i].set_aim(Point(x_mouse, y_mouse));
+                        }
+                    }
                 }
                 break;
 
             case sf::Event::MouseButtonReleased:
-                if (this->ev.mouseButton.button == sf::Mouse::Right) {
+                if (this->ev.mouseButton.button == sf::Mouse::Left) {
                     this->box();
+                    for (int i = 0; i < animals.size(); i++){
+                        if (animals[i].is_selected()) were_selected = true;
+                    }
+                    if (!were_selected){
+                        this->pushButtons();
+                        this->initAnimal();
+                    }
                 }
                 break;
         }
@@ -288,12 +306,9 @@ void Game::update() {
     Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
     x_mouse = local_mouse.get_x();
     y_mouse = local_mouse.get_y();
-    //for(int i = 0; i < animals.size(); i++){
-    // animals[i].aim.set_x(x_mouse);
-    // animals[i].move();
-    // cout << animals[i].aim.get_x() << "y = " << animals[i].aim.get_y() << endl;
-    // animals[i].aim.set_y(y_mouse);
-    //}
+    for(int i = 0; i < animals.size(); i++){
+        animals[i].move();
+    }
 
     if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height){
         this->cursor.setFillColor(sf::Color::Red);
@@ -393,7 +408,7 @@ void Game::initAnimal() {
 
         if (near_animal == false and near_base == true and energy >= price_of_animal and position.get_y() < height and position.get_x() < width) {
             energy -= price_of_animal;
-            Point aim_ = Point(0, 0);
+            Point aim_ = position;
             auto beast = Simple_Animal(price_of_animal, 100, 10, aim_, position);
             beast.picture.setRadius(animal_size);
             beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());

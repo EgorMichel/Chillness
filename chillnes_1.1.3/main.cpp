@@ -190,7 +190,9 @@ private:
     //Game objects
     sf::RectangleShape cursor;
     Board board;
-    Point mouse
+    Point mouse;
+    int x_mouse, y_mouse;
+    int x_mouse_0, y_mouse_0;
 
     //Private functions
     void initVariables();
@@ -210,7 +212,8 @@ public:
     void pollEvents();
     void update();
     void render();
-    void box (vector<Animal> animals);
+
+    void box ();
 };
 
 //Functions definitions:
@@ -257,10 +260,18 @@ void Game::pollEvents() {
                 if (this->ev.mouseButton.button == sf::Mouse::Left) {
                     this->pushButtons();
                     this->initAnimal();
-                    this->initBox();
+                }
+                if (this->ev.mouseButton.button == sf::Mouse::Right) {
+                    x_mouse_0 = x_mouse;
+                    y_mouse_0 = y_mouse;
                 }
                 break;
 
+            case sf::Event::MouseButtonReleased:
+                if (this->ev.mouseButton.button == sf::Mouse::Right) {
+                    this->box();
+                }
+                break;
         }
     }
 }
@@ -268,9 +279,9 @@ void Game::pollEvents() {
 void Game::update() {
     this->pollEvents();
 
-    Point mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
-    x_mouse = mouse.get_x();
-    y_mouse = mouse.get_y();
+    Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
+    x_mouse = local_mouse.get_x();
+    y_mouse = local_mouse.get_y();
     //for(int i = 0; i < animals.size(); i++){
     // animals[i].aim.set_x(x_mouse);
     // animals[i].move();
@@ -291,6 +302,7 @@ void Game::update() {
 }
 
 void Game::render() {
+
     this->window->clear(sf::Color(5, 0, 90, 255));
     this->window->draw(this->board.board);
     this->window->draw(this->board.energy_lvl_back);
@@ -299,8 +311,10 @@ void Game::render() {
     this->window->draw(this->board.spawn_base.picture);
     this->window->draw(this->cursor);
 
-    for(int i = 0; i < bases.size(); i++) this->window->draw(bases[i].picture);
-    for(int i = 0; i < animals.size(); i++) this->window->draw(animals[i].picture);
+    for(auto & base : bases) this->window->draw(base.picture);
+    for(auto & animal : animals) {
+        this->window->draw(animal.picture);
+    }
     this->window->display();
 }
 
@@ -385,16 +399,20 @@ void Game::pushButtons() {
         }
     }
 
-void Game::box (vector<Animal> animals){
+void Game::box (){
+    Point a1(x_mouse, y_mouse);
+    Point a2(x_mouse_0, y_mouse_0);
     double xmax = std::max(a1.get_x(), a2.get_x());
     double xmin = std::min(a1.get_x(), a2.get_x());
     double ymax = std::max(a1.get_y(), a2.get_y());
     double ymin = std::min(a1.get_y(), a2.get_y());
     for (unsigned int i = 0; i < animals.size(); i++){
-        if ((animals[i].get_x() < xmax && animals[i].get_x() > xmin) && (animals[i].get_y() < ymax && animals[i].get_y() > ymin)){
+        if ((animals[i].pos.get_x() < xmax && animals[i].pos.get_x() > xmin) && (animals[i].pos.get_y() < ymax && animals[i].pos.get_y() > ymin)){
             animals[i].select(true);
+            animals[i].picture.setFillColor(red);
         }
     }
+
 }
 
 //------------------------------------------------------GAME LOOP-------------------------------------------------------
@@ -406,8 +424,10 @@ void Game::box (vector<Animal> animals){
         while(game.running())
         {
 //Update
+
             game.update();
 //Render
+
             game.render();
         }
         return 0;

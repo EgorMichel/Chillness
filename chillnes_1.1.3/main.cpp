@@ -102,11 +102,11 @@ public:
     Point get_aim() const {return aim;}
     Point set_aim(Point a) {aim = a;}
     sf::CircleShape picture;
-    bool stable = false;
+    bool stable = true;
     const int size = 5;
+    const int mass = 10;
     sf::Color color;
     Point pos, aim = pos;
-    int native_base;
 protected:
     int energy, strength, price, speed;
     bool selected;
@@ -131,25 +131,9 @@ vector<Simple_Animal> animals = {};
 
 //Function definition:
 void Simple_Animal::move() {
-    Point goal;
-
-    if (pos.distance(aim) > 4 and stable == false) {
-        pos.set_x(floor(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim)));
-        pos.set_y(floor(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim)));
-        picture.setPosition(pos.get_x(), pos.get_y());
-    } else stable = true;
-
-    for(auto & animal : animals){
-        double dist = this->pos.distance(animal.pos);
-        goal.set_x(-animal.pos.get_x() + 2*pos.get_x());
-        goal.set_y(-animal.pos.get_y() + 2*pos.get_y());
-        if(dist < animal_size*2 and dist != 0) {
-            pos.set_x(floor(pos.get_x() + (speed) * pos.delta_x(goal) / pos.distance(goal)));
-            pos.set_y(floor(pos.get_y() + (speed) * pos.delta_y(goal) / pos.distance(goal)));
-            if (animal.stable == true) stable = true;
-        }
-    }
-
+    if(pos.distance(aim) < animal_size*2) stable = true;
+    pos.set_x(floor(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim)));
+    pos.set_y(floor(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim)));
 }
 
 void Simple_Animal::eat(){
@@ -315,16 +299,34 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
+    Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
+    x_mouse = local_mouse.get_x();
+    y_mouse = local_mouse.get_y();
     this->pollEvents();
     area.setPosition(x_mouse_0, y_mouse_0);
     float size_x = x_mouse - x_mouse_0;
     float size_y = y_mouse - y_mouse_0;
     area.setSize(sf::Vector2(size_x, size_y));
-    Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
-    x_mouse = local_mouse.get_x();
-    y_mouse = local_mouse.get_y();
+
     for(auto & animal : animals){
-        animal.move();
+        if(!animal.stable) animal.move();
+
+        for(auto & another_animal : animals) {
+            double dist = animal.pos.distance(another_animal.pos);
+            if (dist < animal_size * 2 and dist != 0) {
+                Point pos = animal.pos;
+                Point another_pos = another_animal.pos;
+                animal.pos.set_x(pos.get_x() - speed * pos.delta_x(another_pos) / pos.distance(another_pos));
+                animal.pos.set_y(pos.get_y() - speed * pos.delta_y(another_pos) / pos.distance(another_pos));
+                if(!animal.stable) {
+                    another_animal.pos.set_x(
+                            another_pos.get_x() - speed * another_pos.delta_x(pos) / another_pos.distance(pos));
+                    another_animal.pos.set_y(
+                            another_pos.get_y() - speed * another_pos.delta_y(pos) / another_pos.distance(pos));
+                }
+
+            }
+        }
     }
 
     if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height){
@@ -354,6 +356,7 @@ void Game::render() {
     for(auto & animal : animals) {
         if (animal.is_selected()) animal.picture.setFillColor(red);
         else animal.picture.setFillColor(green);
+        animal.picture.setPosition(animal.pos.get_x(), animal.pos.get_y());
         window->draw(animal.picture);
     }
 
@@ -411,44 +414,52 @@ void Game::initBase() {
 }
 
 void Game::initAnimal() {
-    bool near_animal = false;
-    bool near_base = false;
-    Point position(0, 0);
-    position.set_x(x_mouse);
-    position.set_y(y_mouse);
-    int i_spawn;
-    for(auto & animal : animals){
-        if(position.distance(animal.get_pos()) < animal_size*2) near_animal = true;
+    bool spawned = false;
+    int counter = 0;
+    while (!spawned and counter < 10) {
+        counter++;
+        int value_x = 0 - base_size + (rand() / ((RAND_MAX + 1u) / (base_size * 2)));
+        int value_y = 0 - base_size + (rand() / ((RAND_MAX + 1u) / (base_size * 2)));
+        bool near_animal = false;
+        bool near_base = false;
+        Point position(0, 0);
+        position.set_x(x_mouse);
+        position.set_y(y_mouse);
+        int i_spawn;
+        for (int i = 0; i < bases.size(); i++) {
+            if (position.distance(bases[i].pos) < base_size) {
+                near_base = true;
+                i_spawn = i;
+                position = bases[i_spawn].pos;
+                position.set_x(position.get_x() + value_x);
+                position.set_y(position.get_y() + value_y);
+            }
         }
-    for(int i = 0; i < bases.size(); i++) {
-        if (position.distance(bases[i].pos) < base_size) {
-            near_base = true;
-            i_spawn = i;
-        }
-    }
-        if (near_animal == false and near_base == true and energy >= price_of_animal and position.get_y() < height and position.get_x() < width) {
-            energy -= price_of_animal;
-            position = bases[i_spawn].pos;
-            int value_x =  -base_size + rand()/((RAND_MAX + 1u)/(base_size*2));
-            int value_y =  -base_size + rand()/((RAND_MAX + 1u)/(base_size*2));
-            position.set_x(position.get_x() + value_x);
-            position.set_y(position.get_y() + value_y);
-            Point aim_ = position;
-            auto beast = Simple_Animal(price_of_animal, 100, speed, aim_, position);
-            beast.picture.setRadius(animal_size);
-            beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());
-            beast.picture.setOrigin(animal_size, animal_size);
-            beast.picture.setFillColor(beast.color);
-            beast.picture.setOutlineThickness(0);
-            beast.picture.setOutlineColor(white);
-            animals.push_back(beast);
+
+        if(near_base){
+            for (auto &animal : animals) {
+                if (position.distance(animal.get_pos()) < animal_size * 2) near_animal = true;
+                }
+
+            if (!near_animal and energy >= price_of_animal and position.get_y() < height and
+                position.get_x() < width) {
+                energy -= price_of_animal;
+                Point aim_ = position;
+                auto beast = Simple_Animal(price_of_animal, 100, speed, aim_, position);
+                beast.picture.setRadius(animal_size);
+                beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());
+                beast.picture.setOrigin(animal_size, animal_size);
+                beast.picture.setFillColor(beast.color);
+                beast.picture.setOutlineThickness(0);
+                beast.picture.setOutlineColor(white);
+                animals.push_back(beast);
+                spawned = true;
+                }
+            }
         }
     }
 
 void Game::pushButtons() {
-        int x_mouse, y_mouse;
-        x_mouse = sf::Mouse::getPosition(*this->window).x;
-        y_mouse = sf::Mouse::getPosition(*this->window).y;
         if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height
             and abs(x_mouse - board.spawn_base.picture.getPosition().x) < board.spawn_base.picture.getSize().x/2 and
             abs(y_mouse - board.spawn_base.picture.getPosition().y) < board.spawn_base.picture.getSize().y/2){

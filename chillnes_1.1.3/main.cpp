@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
-
+#include <random>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 
@@ -19,6 +19,7 @@ float base_size = 100;
 float animal_size = 20;
 int energy = 100;
 int price_of_animal = 5;
+int speed = 5;
 sf::Font font;
 sf::Color green = sf::Color::Green;
 sf::Color red = sf::Color::Red;
@@ -101,6 +102,7 @@ public:
     Point get_aim() const {return aim;}
     Point set_aim(Point a) {aim = a;}
     sf::CircleShape picture;
+    bool stable = false;
     const int size = 5;
     sf::Color color;
     Point pos, aim = pos;
@@ -129,11 +131,25 @@ vector<Simple_Animal> animals = {};
 
 //Function definition:
 void Simple_Animal::move() {
-    if (pos.distance(aim) > 1) {
-        pos.set_x(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim));
-        pos.set_y(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim));
+    Point goal;
+
+    if (pos.distance(aim) > 4 and stable == false) {
+        pos.set_x(floor(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim)));
+        pos.set_y(floor(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim)));
         picture.setPosition(pos.get_x(), pos.get_y());
+    } else stable = true;
+
+    for(auto & animal : animals){
+        double dist = this->pos.distance(animal.pos);
+        goal.set_x(-animal.pos.get_x() + 2*pos.get_x());
+        goal.set_y(-animal.pos.get_y() + 2*pos.get_y());
+        if(dist < animal_size*2 and dist != 0) {
+            pos.set_x(floor(pos.get_x() + (speed) * pos.delta_x(goal) / pos.distance(goal)));
+            pos.set_y(floor(pos.get_y() + (speed) * pos.delta_y(goal) / pos.distance(goal)));
+            if (animal.stable == true) stable = true;
+        }
     }
+
 }
 
 void Simple_Animal::eat(){
@@ -276,6 +292,7 @@ void Game::pollEvents() {
                     for (int i = 0; i < animals.size(); i++){
                         if (animals[i].is_selected()){
                             animals[i].set_aim(Point(x_mouse, y_mouse));
+                            animals[i].stable = false;
                         }
                     }
                 }
@@ -306,8 +323,8 @@ void Game::update() {
     Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
     x_mouse = local_mouse.get_x();
     y_mouse = local_mouse.get_y();
-    for(int i = 0; i < animals.size(); i++){
-        animals[i].move();
+    for(auto & animal : animals){
+        animal.move();
     }
 
     if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height){
@@ -399,22 +416,30 @@ void Game::initAnimal() {
     Point position(0, 0);
     position.set_x(x_mouse);
     position.set_y(y_mouse);
-    for(int i = 0; i < animals.size(); i++){
-        if(position.distance(animals[i].get_pos()) < animal_size*2) near_animal = true;
+    int i_spawn;
+    for(auto & animal : animals){
+        if(position.distance(animal.get_pos()) < animal_size*2) near_animal = true;
         }
     for(int i = 0; i < bases.size(); i++) {
-        if (position.distance(bases[i].pos) < base_size) near_base = true;
+        if (position.distance(bases[i].pos) < base_size) {
+            near_base = true;
+            i_spawn = i;
         }
-
+    }
         if (near_animal == false and near_base == true and energy >= price_of_animal and position.get_y() < height and position.get_x() < width) {
             energy -= price_of_animal;
+            position = bases[i_spawn].pos;
+            int value_x =  -base_size + rand()/((RAND_MAX + 1u)/(base_size*2));
+            int value_y =  -base_size + rand()/((RAND_MAX + 1u)/(base_size*2));
+            position.set_x(position.get_x() + value_x);
+            position.set_y(position.get_y() + value_y);
             Point aim_ = position;
-            auto beast = Simple_Animal(price_of_animal, 100, 10, aim_, position);
+            auto beast = Simple_Animal(price_of_animal, 100, speed, aim_, position);
             beast.picture.setRadius(animal_size);
             beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());
             beast.picture.setOrigin(animal_size, animal_size);
             beast.picture.setFillColor(beast.color);
-            beast.picture.setOutlineThickness(3);
+            beast.picture.setOutlineThickness(0);
             beast.picture.setOutlineColor(white);
             animals.push_back(beast);
         }

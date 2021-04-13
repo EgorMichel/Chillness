@@ -12,22 +12,17 @@ using std::endl;
 
 
 //Global variables======================================================================================================
-unsigned int height = 1500;
-unsigned int width = 2000;
+unsigned int height = sf::VideoMode::getDesktopMode().height;;
+unsigned int width = sf::VideoMode::getDesktopMode().width;;
 unsigned int population = 20;
-float base_size = 100;
-float animal_size = 20;
+float base_size = width / 32;
+float animal_size = width / 120;
 int energy = 100;
 int price_of_animal = 5;
-int speed = 5;
 sf::Font font;
 sf::Color green = sf::Color::Green;
 sf::Color red = sf::Color::Red;
 sf::Color white = sf::Color::White;
-bool pushed = false;
-
-
-
 
 class Base;
 
@@ -98,9 +93,9 @@ public:
     void set_speed(int speed_) {speed = speed_;}
     void select(bool a) {selected = a;}
     Point get_pos() const {return pos;}
-    Point set_pos(Point a) {pos = a;}
+    void set_pos(Point a) {pos = a;}
     Point get_aim() const {return aim;}
-    Point set_aim(Point a) {aim = a;}
+    void set_aim(Point a) {aim = a;}
     sf::CircleShape picture;
     bool stable = true;
     const int size = 5;
@@ -162,7 +157,7 @@ public:
     }
 };
 
-Point p1(100, 100), p2(300, 1100), p3(600, 750), p4(1000, 1100), p5(1400, 750), p6(1900, 100), p7(1700, 1100);
+Point p1(width / 16, height / 9), p2(width / 4, height * 4 / 9), p3(width / 8, height * 7 / 9), p4(width / 2, height / 3), p5(width * 3 / 4, height * 4 / 9), p6(width * 7 / 8, height * 7 / 9), p7(width * 15 / 16, height / 9);
 Base b1(p1), b2(p2), b3(p3), b4(p4), b5(p5), b6(p6), b7(p7);
 vector<Base> bases = {b1, b2, b3, b4, b5, b6, b7};
 
@@ -189,7 +184,6 @@ private:
     sf::RenderWindow* window;
     sf::VideoMode videoMode;
     sf::Event ev;
-
     //Game objects
     sf::RectangleShape cursor;
     Board board;
@@ -228,7 +222,7 @@ void Game::initVariables() {
 void Game::initWindow() {
     this->videoMode.height = height;
     this->videoMode.width = width;
-    this->window = new sf::RenderWindow(this->videoMode, "Chillness 1.1.3", sf::Style::Titlebar | sf::Style::Close);
+    this->window = new sf::RenderWindow(this->videoMode, "Chillness 1.1.3", sf::Style::Titlebar | sf::Style::Fullscreen);
     this->window->setFramerateLimit(40);
 
 }
@@ -316,13 +310,13 @@ void Game::update() {
             if (dist < animal_size * 2 and dist != 0) {
                 Point pos = animal.pos;
                 Point another_pos = another_animal.pos;
-                animal.pos.set_x(pos.get_x() - speed * pos.delta_x(another_pos) / pos.distance(another_pos));
-                animal.pos.set_y(pos.get_y() - speed * pos.delta_y(another_pos) / pos.distance(another_pos));
+                animal.pos.set_x(pos.get_x() - animal.get_speed() * pos.delta_x(another_pos) / pos.distance(another_pos));
+                animal.pos.set_y(pos.get_y() - animal.get_speed() * pos.delta_y(another_pos) / pos.distance(another_pos));
                 if(!animal.stable) {
                     another_animal.pos.set_x(
-                            another_pos.get_x() - speed * another_pos.delta_x(pos) / another_pos.distance(pos));
+                            another_pos.get_x() - animal.get_speed() * another_pos.delta_x(pos) / another_pos.distance(pos));
                     another_animal.pos.set_y(
-                            another_pos.get_y() - speed * another_pos.delta_y(pos) / another_pos.distance(pos));
+                            another_pos.get_y() - animal.get_speed() * another_pos.delta_y(pos) / another_pos.distance(pos));
                 }
 
             }
@@ -445,7 +439,7 @@ void Game::initAnimal() {
                 position.get_x() < width) {
                 energy -= price_of_animal;
                 Point aim_ = position;
-                auto beast = Simple_Animal(price_of_animal, 100, speed, aim_, position);
+                auto beast = Simple_Animal(price_of_animal, 100, 5, aim_, position);
                 beast.picture.setRadius(animal_size);
                 beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());
                 beast.picture.setOrigin(animal_size, animal_size);

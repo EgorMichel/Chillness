@@ -15,8 +15,14 @@ vector
 -
 cmath
 -
+random
+-
 SFML/Graphics.hpp
 -
 SFML/Window.hpp
+-
+SFML/Network.hpp
+-
+string
 -
 

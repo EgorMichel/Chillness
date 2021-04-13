@@ -5,6 +5,8 @@
 #include <random>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
+#include <SFML/Network.hpp>
+#include <string>
 
 using std::vector;
 using std::cout;
@@ -189,7 +191,6 @@ private:
     sf::RenderWindow* window;
     sf::VideoMode videoMode;
     sf::Event ev;
-
     //Game objects
     sf::RectangleShape cursor;
     Board board;
@@ -197,6 +198,13 @@ private:
     sf::RectangleShape area;
     int x_mouse, y_mouse;
     int x_mouse_0, y_mouse_0;
+    std::string username;
+    sf::TcpSocket socket;
+    std::string text;
+    sf::IpAddress ip = sf::IpAddress::getLocalAddress();
+    char mode = 's';
+    char buffer[2000];
+    size_t received;
 
     //Private functions
     void initVariables();
@@ -216,7 +224,6 @@ public:
     void pollEvents();
     void update();
     void render();
-
     void box ();
 };
 
@@ -243,6 +250,12 @@ Game::Game() {
     this->initCursor();
     this->initBoard();
     this->initBase();
+    username = "egor";
+    socket.connect(ip, 2000);
+    text = username;
+    socket.send(text.c_str(), text.length() + 1);
+    socket.receive(buffer, sizeof(buffer), received);
+    cout << buffer << endl;
 }
 
 const bool Game::running() const {
@@ -299,6 +312,12 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
+    text = std::to_string(animals.size());
+    socket.send(text.c_str(), text.length() + 1);
+
+    socket.receive(buffer, sizeof(buffer), received);
+    //std::cout << "Received: " << buffer << endl;
+
     Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
     x_mouse = local_mouse.get_x();
     y_mouse = local_mouse.get_y();

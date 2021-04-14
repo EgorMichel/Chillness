@@ -125,7 +125,6 @@ public:
 vector<Simple_Animal> animals = {};
 
 
-
 //Function definition:
 void Simple_Animal::move() {
     if(pos.distance(aim) < animal_size*2) stable = true;
@@ -147,19 +146,42 @@ void Simple_Animal::attack(Animal* opponent){
 void Simple_Animal::capture(Base* base){
 }
 
+//BaseMenu class--------------------------------------------------------
+class BaseMenu{
+public:
+    BaseMenu() = default;
+    sf::RectangleShape picture;
+    sf::Color color;
+    Point pos;
+};
+
 //Base class--------------------------------------------------------
 class Base{
 public:
     sf::CircleShape picture;
     sf::Color color;
     Point pos;
+    BaseMenu menu;
+    int num_of_animals;
+    bool is_selected;
+    int radius;
+
     Base(Point pos_){
         pos = pos_;
         color = white;
+        radius = base_size;
     }
+    bool is_in_base(Point a);
+
 };
 
-Point p1(width / 16, height / 9), p2(width / 4, height * 4 / 9), p3(width / 8, height * 7 / 9), p4(width / 2, height / 3), p5(width * 3 / 4, height * 4 / 9), p6(width * 7 / 8, height * 7 / 9), p7(width * 15 / 16, height / 9);
+bool::Base::is_in_base(Point a){
+    return (a.distance(this->pos) * a.distance(this->pos) < radius * radius);
+}
+
+Point p1(width / 16, height / 9), p2(width / 4, height * 4 / 9), p3(width / 8, height * 7 / 9),
+        p4(width / 2, height / 3), p5(width * 3 / 4, height * 4 / 9),
+        p6(width * 7 / 8, height * 7 / 9), p7(width * 15 / 16, height / 9);
 Base b1(p1), b2(p2), b3(p3), b4(p4), b5(p5), b6(p6), b7(p7);
 vector<Base> bases = {b1, b2, b3, b4, b5, b6, b7};
 
@@ -167,7 +189,7 @@ vector<Base> bases = {b1, b2, b3, b4, b5, b6, b7};
 struct button{
     sf::RectangleShape picture;
     sf:: Text caption;
-    bool pushed = 0;
+    bool pushed = false;
 };
 //Board structure-----------------------------------------------------
 struct Board{
@@ -189,10 +211,9 @@ private:
     //Game objects
     sf::RectangleShape cursor;
     Board board;
-    Point mouse;
     sf::RectangleShape area;
-    int x_mouse, y_mouse;
-    int x_mouse_0, y_mouse_0;
+    Point mouse;
+    Point mouse_0;
     std::string username;
     sf::TcpSocket socket;
     std::string text;
@@ -211,6 +232,7 @@ public:
     void initBoard();
     Game();
     void initBase();
+    void initBaseMenu();
     void initAnimal();
     void pushButtons();
     virtual ~Game();
@@ -276,14 +298,13 @@ void Game::pollEvents() {
                             animals[i].select(false);
                         }
                     }
-                    x_mouse_0 = x_mouse;
-                    y_mouse_0 = y_mouse;
+                    mouse_0 = mouse;
                     area.setFillColor(sf::Color(200, 0, 100, 100));
                 }
                 if (this->ev.mouseButton.button == sf::Mouse::Right) {
                     for (int i = 0; i < animals.size(); i++){
                         if (animals[i].is_selected()){
-                            animals[i].set_aim(Point(x_mouse, y_mouse));
+                            animals[i].set_aim(Point(mouse.get_x(), mouse.get_y()));
                             animals[i].stable = false;
                         }
                     }
@@ -299,6 +320,7 @@ void Game::pollEvents() {
                     if (!were_selected){
                         this->pushButtons();
                         this->initAnimal();
+                        this->initBaseMenu();
                     }
                 }
                 break;
@@ -313,13 +335,12 @@ void Game::update() {
     socket.receive(buffer, sizeof(buffer), received);
     //std::cout << "Received: " << buffer << endl;
 
-    Point local_mouse(sf::Mouse::getPosition(*this->window).x, y_mouse = sf::Mouse::getPosition(*this->window).y);
-    x_mouse = local_mouse.get_x();
-    y_mouse = local_mouse.get_y();
+    mouse.set_x(sf::Mouse::getPosition(*this->window).x);
+    mouse.set_y(sf::Mouse::getPosition(*this->window).y);
     this->pollEvents();
-    area.setPosition(x_mouse_0, y_mouse_0);
-    float size_x = x_mouse - x_mouse_0;
-    float size_y = y_mouse - y_mouse_0;
+    area.setPosition(mouse_0.get_x(), mouse_0.get_y());
+    float size_x = mouse.get_x() - mouse_0.get_x();
+    float size_y = mouse.get_y() - mouse_0.get_y();
     area.setSize(sf::Vector2(size_x, size_y));
 
     for(auto & animal : animals){
@@ -343,9 +364,9 @@ void Game::update() {
         }
     }
 
-    if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height){
+    if (mouse.get_x() >= 0 and mouse.get_y() >= 0 and mouse.get_x() <= this->videoMode.width and mouse.get_y() <= this->videoMode.height){
         this->cursor.setFillColor(sf::Color::Red);
-        this->cursor.setPosition(x_mouse, y_mouse);
+        this->cursor.setPosition(mouse.get_x(), mouse.get_y());
         this->board.energy_lvl.setSize(sf::Vector2(energy*10.f, 50.f));
     }
     else this->cursor.setFillColor(sf::Color::Green);
@@ -366,7 +387,12 @@ void Game::render() {
 
 
 
-    for(auto & base : bases) this->window->draw(base.picture);
+    for(auto & base : bases){
+        this->window->draw(base.picture);
+        if (base.is_selected){
+            this->window->draw(base.menu.picture);
+        }
+    }
     for(auto & animal : animals) {
         if (animal.is_selected()) animal.picture.setFillColor(red);
         else animal.picture.setFillColor(green);
@@ -421,9 +447,28 @@ void Game::initBase() {
     for(int i = 0; i < bases.size(); i++) {
         bases[i].picture.setOrigin(base_size, base_size);
         bases[i].picture.setPosition(bases[i].pos.get_x(), bases[i].pos.get_y());
-        bases[i].picture.setRadius(base_size);
+        bases[i].picture.setRadius(bases[i].radius);
         bases[i].picture.setFillColor(bases[i].color);
 
+    }
+}
+
+void Game::initBaseMenu(){
+    BaseMenu menu_ = BaseMenu();
+    Point a = Point(mouse.get_x(), mouse.get_y());
+    for (int i = 0; i < 7; i++){
+        if (bases[i].is_in_base(a)){
+            menu_.picture.setSize(sf::Vector2f(width / 4, height / 4));
+            menu_.picture.setOutlineColor(sf::Color::Red);
+            menu_.picture.setOutlineThickness(5);
+            menu_.picture.setPosition(width / 4 * 3, height / 4 * 3 - 5);
+            bases[i].menu = menu_;
+            bases[i].is_selected = true;
+            return;
+        }
+        else{
+            bases[i].is_selected = false;
+        }
     }
 }
 
@@ -437,8 +482,8 @@ void Game::initAnimal() {
         bool near_animal = false;
         bool near_base = false;
         Point position(0, 0);
-        position.set_x(x_mouse);
-        position.set_y(y_mouse);
+        position.set_x(mouse.get_x());
+        position.set_y(mouse.get_y());
         int i_spawn;
         for (int i = 0; i < bases.size(); i++) {
             if (position.distance(bases[i].pos) < base_size) {
@@ -474,16 +519,16 @@ void Game::initAnimal() {
     }
 
 void Game::pushButtons() {
-        if (x_mouse >= 0 and y_mouse >= 0 and x_mouse <= this->videoMode.width and y_mouse <= this->videoMode.height
-            and abs(x_mouse - board.spawn_base.picture.getPosition().x) < board.spawn_base.picture.getSize().x/2 and
-            abs(y_mouse - board.spawn_base.picture.getPosition().y) < board.spawn_base.picture.getSize().y/2){
+        if (mouse.get_x() >= 0 and mouse.get_y() >= 0 and mouse.get_x() <= this->videoMode.width and mouse.get_y() <= this->videoMode.height
+            and abs(mouse.get_x() - board.spawn_base.picture.getPosition().x) < board.spawn_base.picture.getSize().x/2 and
+            abs(mouse.get_y() - board.spawn_base.picture.getPosition().y) < board.spawn_base.picture.getSize().y/2){
             this->board.spawn_base.pushed = !this->board.spawn_base.pushed;
         }
     }
 
 void Game::box (){
-    Point a1(x_mouse, y_mouse);
-    Point a2(x_mouse_0, y_mouse_0);
+    Point a1 = mouse;
+    Point a2 = mouse_0;
     double xmax = std::max(a1.get_x(), a2.get_x());
     double xmin = std::min(a1.get_x(), a2.get_x());
     double ymax = std::max(a1.get_y(), a2.get_y());
@@ -495,8 +540,8 @@ void Game::box (){
             animals[i].picture.setFillColor(red);
         }
     }
-    x_mouse_0 = 0;
-    y_mouse_0 = 0;
+    mouse_0.set_x(0);
+    mouse_0.set_y(0);
     area.setFillColor(sf::Color(0, 0, 0, 0));
 }
 

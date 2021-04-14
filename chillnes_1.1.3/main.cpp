@@ -125,6 +125,7 @@ public:
 vector<Simple_Animal> animals = {};
 
 
+
 //Function definition:
 void Simple_Animal::move() {
     if(pos.distance(aim) < animal_size*2) stable = true;
@@ -217,7 +218,7 @@ private:
     std::string username;
     sf::TcpSocket socket;
     std::string text;
-    sf::IpAddress ip = sf::IpAddress::getLocalAddress();
+    sf::IpAddress ip = sf::IpAddress::LocalHost;
     char mode = 's';
     char buffer[2000];
     size_t received;
@@ -268,11 +269,12 @@ Game::Game() {
     this->initBoard();
     this->initBase();
     username = "egor";
-    socket.connect(ip, 2000);
-    text = username;
-    socket.send(text.c_str(), text.length() + 1);
-    socket.receive(buffer, sizeof(buffer), received);
-    cout << buffer << endl;
+    //socket.connect(ip, 2000);
+    //std::cout << ip << endl;
+    //text = username;
+    //socket.send(text.c_str(), text.length() + 1);
+    //socket.receive(buffer, sizeof(buffer), received);
+   // cout << buffer << endl;
 }
 
 const bool Game::running() const {
@@ -329,10 +331,10 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-    text = std::to_string(animals.size());
-    socket.send(text.c_str(), text.length() + 1);
+   // text = std::to_string(animals.size());
+   // socket.send(text.c_str(), text.length() + 1);
 
-    socket.receive(buffer, sizeof(buffer), received);
+   // socket.receive(buffer, sizeof(buffer), received);
     //std::cout << "Received: " << buffer << endl;
 
     mouse.set_x(sf::Mouse::getPosition(*this->window).x);
@@ -345,7 +347,10 @@ void Game::update() {
 
     for(auto & animal : animals){
         if(!animal.stable) animal.move();
-
+        if(animal.pos.get_x() < animal_size) animal.set_pos(Point(animal_size*1.5, animal.pos.get_y()));
+        if(animal.pos.get_x() > width - animal_size) animal.set_pos(Point(width - animal_size*1.5, animal.pos.get_y()));
+        if(animal.pos.get_y() < animal_size) animal.set_pos(Point(animal.pos.get_x() ,animal_size*1.5));
+        if(animal.pos.get_y() > height - animal_size) animal.set_pos(Point(animal.pos.get_x(), height - animal_size*1.5));
         for(auto & another_animal : animals) {
             double dist = animal.pos.distance(another_animal.pos);
             if (dist < animal_size * 2 and dist != 0) {
@@ -419,28 +424,28 @@ void Game::initCursor() {
 }
 
 void Game::initBoard() {
-    this->board.energy_lvl.setPosition(10, 1420);
-    this->board.energy_lvl.setSize(sf::Vector2(energy*10.f, 50.f));
+    this->board.energy_lvl.setPosition(0, height*0.95);
+    this->board.energy_lvl.setSize(sf::Vector2((width/10)*1.f,  (height/30)*1.f));
     this->board.energy_lvl.setFillColor(sf::Color::Blue);
 
     this->board.energy_lvl_caption.setCharacterSize(50);
     this->board.energy_lvl_caption.setFont(font);
-    this->board.energy_lvl_caption.setPosition(20, 1410);
+    this->board.energy_lvl_caption.setPosition(width*0.02, height*0.9);
     this->board.energy_lvl_caption.setFillColor(sf::Color::Yellow);
     this->board.energy_lvl_caption.setString("energy");
 
-    this->board.energy_lvl_back.setPosition(10, 1420);
-    this->board.energy_lvl_back.setSize(sf::Vector2(energy*10+20.f, 50.f));
+    this->board.energy_lvl_back.setPosition(0, 0.95*height);
+    this->board.energy_lvl_back.setSize(sf::Vector2((width/3)*1.f, (height/30)*1.f));
     this->board.energy_lvl_back.setFillColor(sf::Color::Black);
 
-    this->board.board.setPosition(10, 1400);
-    this->board.board.setSize(sf::Vector2(1900.f, 100.f));
+    this->board.board.setPosition(0, height*0.93);
+    this->board.board.setSize(sf::Vector2(width*1.f, (height/15)*1.f));
     this->board.board.setFillColor(sf::Color::White);
 
-    this->board.spawn_base.picture.setPosition(1725, 1445);
-    this->board.spawn_base.picture.setSize(sf::Vector2(50.f, 50.f));
-    this->board.spawn_base.picture.setFillColor(sf::Color::Green);
-    this->board.spawn_base.picture.setOrigin(25,25);
+    //this->board.spawn_base.picture.setPosition(1725, 1445);
+    //this->board.spawn_base.picture.setSize(sf::Vector2(50.f, 50.f));
+    //this->board.spawn_base.picture.setFillColor(sf::Color::Green);
+    //this->board.spawn_base.picture.setOrigin(25,25);
 }
 
 void Game::initBase() {

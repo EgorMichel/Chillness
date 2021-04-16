@@ -268,13 +268,13 @@ Game::Game() {
     this->initCursor();
     this->initBoard();
     this->initBase();
-    username = "egor";
-    //socket.connect(ip, 2000);
-    //std::cout << ip << endl;
-    //text = username;
-    //socket.send(text.c_str(), text.length() + 1);
-    //socket.receive(buffer, sizeof(buffer), received);
-   // cout << buffer << endl;
+    username = "Vasily";
+    socket.connect(ip, 2000);
+    std::cout << ip << endl;
+    text = username;
+    socket.receive(buffer, sizeof(buffer), received);
+    socket.send(text.c_str(), text.length() + 1);
+    std::cout << buffer << endl;
 }
 
 const bool Game::running() const {
@@ -331,11 +331,10 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-   // text = std::to_string(animals.size());
-   // socket.send(text.c_str(), text.length() + 1);
-
-   // socket.receive(buffer, sizeof(buffer), received);
-    //std::cout << "Received: " << buffer << endl;
+   text = std::to_string(animals.size());
+   socket.send(text.c_str(), text.length() + 1);
+   //socket.receive(buffer, sizeof(buffer), received);
+   //std::cout << "Received: " << buffer << endl;
 
     mouse.set_x(sf::Mouse::getPosition(*this->window).x);
     mouse.set_y(sf::Mouse::getPosition(*this->window).y);

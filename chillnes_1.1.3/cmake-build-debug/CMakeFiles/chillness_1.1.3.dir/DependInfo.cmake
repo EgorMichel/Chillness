@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/egor/Repositories/Chillness/chillnes_1.1.3/main.cpp" "/home/egor/Repositories/Chillness/chillnes_1.1.3/cmake-build-debug/CMakeFiles/chillness_1.1.3.dir/main.cpp.o"
+  "/home/egorchan/CLionProjects/Chillness/chillnes_1.1.3/main.cpp" "/home/egorchan/CLionProjects/Chillness/chillnes_1.1.3/cmake-build-debug/CMakeFiles/chillness_1.1.3.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

@@ -18,7 +18,6 @@ unsigned int height = sf::VideoMode::getDesktopMode().height;;
 unsigned int width = sf::VideoMode::getDesktopMode().width;;
 unsigned int population = 20;
 float base_size = width / 32;
-float animal_size = width / 120;
 int energy = 100;
 int price_of_animal = 5;
 sf::Font font;
@@ -80,8 +79,11 @@ public:
         color = green;
         selected = false;
     }
-    virtual void move() = 0;
-    virtual void eat() = 0;
+    void move() {
+        if(pos.distance(aim) < this->size*2) stable = true;
+        pos.set_x(floor(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim)));
+        pos.set_y(floor(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim)));
+    }
     virtual void attack(Animal* opponent) = 0;
     virtual void capture(Base* base) = 0;
     int get_energy() const{return energy;}
@@ -100,7 +102,7 @@ public:
     void set_aim(Point a) {aim = a;}
     sf::CircleShape picture;
     bool stable = true;
-    const int size = 5;
+    const int size = width / 120;
     const int mass = 10;
     sf::Color color;
     Point pos, aim = pos;
@@ -110,31 +112,22 @@ protected:
 
 };
 
-//Animal types------------------------------------------------------
+//Animal types-----------------------------------------------------------------------------------------
+
+//Simple_Animal--------------------------------------
+
 class Simple_Animal: public Animal
 {
 public:
     Simple_Animal(int energy_, int strength_, int speed_, Point aim_, Point pos_):
             Animal(energy_, strength_, speed_, aim_, pos_){ }
-    void move() final;
-    void eat() final;
     void attack(Animal* opponent) final;
     void capture(Base* base) final;
 };
 
-vector<Simple_Animal> animals = {};
-
-
+vector<Simple_Animal> simple_animals = {};
 
 //Function definition:
-void Simple_Animal::move() {
-    if(pos.distance(aim) < animal_size*2) stable = true;
-    pos.set_x(floor(pos.get_x() + speed * pos.delta_x(aim) / pos.distance(aim)));
-    pos.set_y(floor(pos.get_y() + speed * pos.delta_y(aim) / pos.distance(aim)));
-}
-
-void Simple_Animal::eat(){
-}
 
 void Simple_Animal::attack(Animal* opponent){
     opponent->set_energy(opponent->get_energy() - strength);
@@ -146,6 +139,25 @@ void Simple_Animal::attack(Animal* opponent){
 
 void Simple_Animal::capture(Base* base){
 }
+
+//Shouter_Animal
+class Shouter_Animal: public Animal
+{
+public:
+    Shouter_Animal(int energy_, int strength_, int speed_, Point aim_, Point pos_):
+            Animal(energy_, strength_, speed_, aim_, pos_){ }
+    void attack(Animal* opponent) final;
+    void capture(Base* base) final;
+};
+
+void Shouter_Animal::attack(Animal *opponent) {
+
+}
+
+void Shouter_Animal::capture(Base* base) {
+
+}
+
 
 //BaseMenu class--------------------------------------------------------
 class BaseMenu{
@@ -164,13 +176,14 @@ public:
     Point pos;
     BaseMenu menu;
     int num_of_animals;
-    bool is_selected;
+    bool is_selected = false;
     int radius;
 
     Base(Point pos_){
         pos = pos_;
         color = white;
         radius = base_size;
+        num_of_animals = 0;
     }
     bool is_in_base(Point a);
 
@@ -218,7 +231,6 @@ private:
     std::string username;
     sf::TcpSocket socket;
     std::string text;
-    sf::IpAddress ip = sf::IpAddress::LocalHost;
     char mode = 's';
     char buffer[2000];
     size_t received;
@@ -238,7 +250,7 @@ public:
     void pushButtons();
     virtual ~Game();
 
-    const bool running() const;
+    bool running() const;
     void pollEvents();
     void update();
     void render();
@@ -268,7 +280,8 @@ Game::Game() {
     this->initCursor();
     this->initBoard();
     this->initBase();
-    username = "Vasily";
+    username = "Egor";
+    sf::IpAddress ip = "10.55.130.110";
     socket.connect(ip, 2000);
     std::cout << ip << endl;
     text = username;
@@ -277,7 +290,7 @@ Game::Game() {
     std::cout << buffer << endl;
 }
 
-const bool Game::running() const {
+bool Game::running() const {
     return this->window->isOpen();
 }
 
@@ -295,19 +308,19 @@ void Game::pollEvents() {
                 break;
             case sf::Event::MouseButtonPressed:
                 if (this->ev.mouseButton.button == sf::Mouse::Left) {
-                    for (int i = 0; i < animals.size(); i++){
-                        if (animals[i].is_selected()){
-                            animals[i].select(false);
+                    for (int i = 0; i < simple_animals.size(); i++){
+                        if (simple_animals[i].is_selected()){
+                            simple_animals[i].select(false);
                         }
                     }
                     mouse_0 = mouse;
                     area.setFillColor(sf::Color(200, 0, 100, 100));
                 }
                 if (this->ev.mouseButton.button == sf::Mouse::Right) {
-                    for (int i = 0; i < animals.size(); i++){
-                        if (animals[i].is_selected()){
-                            animals[i].set_aim(Point(mouse.get_x(), mouse.get_y()));
-                            animals[i].stable = false;
+                    for (int i = 0; i < simple_animals.size(); i++){
+                        if (simple_animals[i].is_selected()){
+                            simple_animals[i].set_aim(Point(mouse.get_x(), mouse.get_y()));
+                            simple_animals[i].stable = false;
                         }
                     }
                 }
@@ -316,8 +329,8 @@ void Game::pollEvents() {
             case sf::Event::MouseButtonReleased:
                 if (this->ev.mouseButton.button == sf::Mouse::Left) {
                     this->box();
-                    for (int i = 0; i < animals.size(); i++){
-                        if (animals[i].is_selected()) were_selected = true;
+                    for (int i = 0; i < simple_animals.size(); i++){
+                        if (simple_animals[i].is_selected()) were_selected = true;
                     }
                     if (!were_selected){
                         this->pushButtons();
@@ -331,7 +344,11 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-   text = std::to_string(animals.size());
+    text = std::to_string(simple_animals.size());
+    socket.send(text.c_str(), text.length() + 1);
+
+//    socket.receive(buffer, sizeof(buffer), received);
+   text = std::to_string(simple_animals.size());
    socket.send(text.c_str(), text.length() + 1);
    //socket.receive(buffer, sizeof(buffer), received);
    //std::cout << "Received: " << buffer << endl;
@@ -344,15 +361,15 @@ void Game::update() {
     float size_y = mouse.get_y() - mouse_0.get_y();
     area.setSize(sf::Vector2(size_x, size_y));
 
-    for(auto & animal : animals){
+    for(auto & animal : simple_animals){
         if(!animal.stable) animal.move();
-        if(animal.pos.get_x() < animal_size) animal.set_pos(Point(animal_size*1.5, animal.pos.get_y()));
-        if(animal.pos.get_x() > width - animal_size) animal.set_pos(Point(width - animal_size*1.5, animal.pos.get_y()));
-        if(animal.pos.get_y() < animal_size) animal.set_pos(Point(animal.pos.get_x() ,animal_size*1.5));
-        if(animal.pos.get_y() > height - animal_size) animal.set_pos(Point(animal.pos.get_x(), height - animal_size*1.5));
-        for(auto & another_animal : animals) {
+        if(animal.pos.get_x() < animal.size) animal.set_pos(Point(animal.size*1.5, animal.pos.get_y()));
+        if(animal.pos.get_x() > width - animal.size) animal.set_pos(Point(width - animal.size*1.5, animal.pos.get_y()));
+        if(animal.pos.get_y() < animal.size) animal.set_pos(Point(animal.pos.get_x() ,animal.size*1.5));
+        if(animal.pos.get_y() > height - animal.size) animal.set_pos(Point(animal.pos.get_x(), height - animal.size*1.5));
+        for(auto & another_animal : simple_animals) {
             double dist = animal.pos.distance(another_animal.pos);
-            if (dist < animal_size * 2 and dist != 0) {
+            if (dist < animal.size * 2 and dist != 0) {
                 Point pos = animal.pos;
                 Point another_pos = another_animal.pos;
                 animal.pos.set_x(pos.get_x() - animal.get_speed() * pos.delta_x(another_pos) / pos.distance(another_pos));
@@ -397,7 +414,7 @@ void Game::render() {
             this->window->draw(base.menu.picture);
         }
     }
-    for(auto & animal : animals) {
+    for(auto & animal : simple_animals) {
         if (animal.is_selected()) animal.picture.setFillColor(red);
         else animal.picture.setFillColor(green);
         animal.picture.setPosition(animal.pos.get_x(), animal.pos.get_y());
@@ -453,7 +470,6 @@ void Game::initBase() {
         bases[i].picture.setPosition(bases[i].pos.get_x(), bases[i].pos.get_y());
         bases[i].picture.setRadius(bases[i].radius);
         bases[i].picture.setFillColor(bases[i].color);
-
     }
 }
 
@@ -500,8 +516,8 @@ void Game::initAnimal() {
         }
 
         if(near_base){
-            for (auto &animal : animals) {
-                if (position.distance(animal.get_pos()) < animal_size * 2) near_animal = true;
+            for (auto &animal : simple_animals) {
+                if (position.distance(animal.get_pos()) < animal.size * 2) near_animal = true;
                 }
 
             if (!near_animal and energy >= price_of_animal and position.get_y() < height and
@@ -509,13 +525,13 @@ void Game::initAnimal() {
                 energy -= price_of_animal;
                 Point aim_ = position;
                 auto beast = Simple_Animal(price_of_animal, 100, 5, aim_, position);
-                beast.picture.setRadius(animal_size);
+                beast.picture.setRadius(beast.size);
                 beast.picture.setPosition(beast.get_pos().get_x(), beast.get_pos().get_y());
-                beast.picture.setOrigin(animal_size, animal_size);
+                beast.picture.setOrigin(beast.size, beast.size);
                 beast.picture.setFillColor(beast.color);
                 beast.picture.setOutlineThickness(0);
                 beast.picture.setOutlineColor(white);
-                animals.push_back(beast);
+                simple_animals.push_back(beast);
                 spawned = true;
                 }
             }
@@ -538,10 +554,11 @@ void Game::box (){
     double ymax = std::max(a1.get_y(), a2.get_y());
     double ymin = std::min(a1.get_y(), a2.get_y());
 
-    for (unsigned int i = 0; i < animals.size(); i++){
-        if ((animals[i].pos.get_x() < xmax && animals[i].pos.get_x() > xmin) && (animals[i].pos.get_y() < ymax && animals[i].pos.get_y() > ymin)){
-            animals[i].select(true);
-            animals[i].picture.setFillColor(red);
+    for (unsigned int i = 0; i < simple_animals.size(); i++){
+        if ((simple_animals[i].pos.get_x() < xmax && simple_animals[i].pos.get_x() > xmin)
+        && (simple_animals[i].pos.get_y() < ymax && simple_animals[i].pos.get_y() > ymin)){
+            simple_animals[i].select(true);
+            simple_animals[i].picture.setFillColor(red);
         }
     }
     mouse_0.set_x(0);

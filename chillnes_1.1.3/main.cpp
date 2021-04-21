@@ -13,10 +13,9 @@ using std::cout;
 using std::endl;
 
 
-//Global variables======================================================================================================
-unsigned int height = sf::VideoMode::getDesktopMode().height;;
-unsigned int width = sf::VideoMode::getDesktopMode().width;;
-unsigned int population = 20;
+//Global variables
+unsigned int height = sf::VideoMode::getDesktopMode().height;
+unsigned int width = sf::VideoMode::getDesktopMode().width;
 float base_size = width / 32;
 int energy = 100;
 int price_of_animal = 5;
@@ -25,9 +24,10 @@ sf::Color green = sf::Color::Green;
 sf::Color red = sf::Color::Red;
 sf::Color white = sf::Color::White;
 
+
 class Base;
 
-//Point class--------------------------------------------------------
+//Point class
 class Point{
 public:
     Point() = default;
@@ -103,7 +103,6 @@ public:
     sf::CircleShape picture;
     bool stable = true;
     const int size = width / 120;
-    const int mass = 10;
     sf::Color color;
     Point pos, aim = pos;
 protected:
@@ -112,9 +111,9 @@ protected:
 
 };
 
-//Animal types-----------------------------------------------------------------------------------------
+//Animal types:
 
-//Simple_Animal--------------------------------------
+//Simple_Animal
 
 class Simple_Animal: public Animal
 {
@@ -126,8 +125,8 @@ public:
 };
 
 vector<Simple_Animal> simple_animals = {};
+vector<Simple_Animal> enemy_animals = {};
 
-//Function definition:
 
 void Simple_Animal::attack(Animal* opponent){
     opponent->set_energy(opponent->get_energy() - strength);
@@ -139,6 +138,7 @@ void Simple_Animal::attack(Animal* opponent){
 
 void Simple_Animal::capture(Base* base){
 }
+
 
 //Shouter_Animal
 class Shouter_Animal: public Animal
@@ -222,7 +222,6 @@ private:
     sf::RenderWindow* window;
     sf::VideoMode videoMode;
     sf::Event ev;
-    //Game objects
     sf::RectangleShape cursor;
     Board board;
     sf::RectangleShape area;
@@ -232,8 +231,8 @@ private:
     sf::TcpSocket socket;
     std::string text;
     char mode = 's';
-    char buffer[2000];
     size_t received;
+    bool is_connected = false;
 
     //Private functions
     void initVariables();
@@ -255,6 +254,10 @@ public:
     void update();
     void render();
     void box ();
+    void updateEnemy();
+    void sendInfo();
+    void receiveInfo();
+    bool connect_to_server();
 };
 
 //Functions definitions:
@@ -275,19 +278,12 @@ Game::~Game() {
 }
 
 Game::Game() {
-    this->initVariables();
-    this->initWindow();
-    this->initCursor();
-    this->initBoard();
-    this->initBase();
-    username = "Egor";
-    sf::IpAddress ip = "10.55.130.110";
-    socket.connect(ip, 2000);
-    std::cout << ip << endl;
-    text = username;
-    socket.receive(buffer, sizeof(buffer), received);
-    socket.send(text.c_str(), text.length() + 1);
-    std::cout << buffer << endl;
+    connect_to_server();
+    initVariables();
+    initWindow();
+    initCursor();
+    initBoard();
+    initBase();
 }
 
 bool Game::running() const {
@@ -344,15 +340,7 @@ void Game::pollEvents() {
 }
 
 void Game::update() {
-    text = std::to_string(simple_animals.size());
-    socket.send(text.c_str(), text.length() + 1);
-
-//    socket.receive(buffer, sizeof(buffer), received);
-   text = std::to_string(simple_animals.size());
-   socket.send(text.c_str(), text.length() + 1);
-   //socket.receive(buffer, sizeof(buffer), received);
-   //std::cout << "Received: " << buffer << endl;
-
+    if(is_connected) updateEnemy();
     mouse.set_x(sf::Mouse::getPosition(*this->window).x);
     mouse.set_y(sf::Mouse::getPosition(*this->window).y);
     this->pollEvents();
@@ -383,12 +371,28 @@ void Game::update() {
 
             }
         }
+        for(auto & another_animal : enemy_animals) {
+            double dist = animal.pos.distance(another_animal.pos);
+            if (dist < animal.size * 2 and dist != 0) {
+                Point pos = animal.pos;
+                Point another_pos = another_animal.pos;
+                animal.pos.set_x(pos.get_x() - animal.get_speed() * pos.delta_x(another_pos) / pos.distance(another_pos));
+                animal.pos.set_y(pos.get_y() - animal.get_speed() * pos.delta_y(another_pos) / pos.distance(another_pos));
+                if(!animal.stable) {
+                    another_animal.pos.set_x(
+                            another_pos.get_x() - animal.get_speed() * another_pos.delta_x(pos) / another_pos.distance(pos));
+                    another_animal.pos.set_y(
+                            another_pos.get_y() - animal.get_speed() * another_pos.delta_y(pos) / another_pos.distance(pos));
+                }
+
+            }
+        }
     }
 
     if (mouse.get_x() >= 0 and mouse.get_y() >= 0 and mouse.get_x() <= this->videoMode.width and mouse.get_y() <= this->videoMode.height){
         this->cursor.setFillColor(sf::Color::Red);
         this->cursor.setPosition(mouse.get_x(), mouse.get_y());
-        this->board.energy_lvl.setSize(sf::Vector2(energy*10.f, 50.f));
+        this->board.energy_lvl.setSize(sf::Vector2(energy*10.f, (height/30)*1.f));
     }
     else this->cursor.setFillColor(sf::Color::Green);
 
@@ -420,6 +424,9 @@ void Game::render() {
         animal.picture.setPosition(animal.pos.get_x(), animal.pos.get_y());
         window->draw(animal.picture);
     }
+    for(auto & animal : enemy_animals) {
+        window->draw(animal.picture);
+    }
 
     window->draw(this->area);
     this->window->display();
@@ -440,23 +447,23 @@ void Game::initCursor() {
 }
 
 void Game::initBoard() {
-    this->board.energy_lvl.setPosition(0, height*0.95);
-    this->board.energy_lvl.setSize(sf::Vector2((width/10)*1.f,  (height/30)*1.f));
-    this->board.energy_lvl.setFillColor(sf::Color::Blue);
+    board.energy_lvl.setPosition(0, height*0.95);
+    board.energy_lvl.setSize(sf::Vector2((width/10)*1.f,  (height/30)*1.f));
+    board.energy_lvl.setFillColor(sf::Color::Blue);
 
-    this->board.energy_lvl_caption.setCharacterSize(50);
-    this->board.energy_lvl_caption.setFont(font);
-    this->board.energy_lvl_caption.setPosition(width*0.02, height*0.9);
-    this->board.energy_lvl_caption.setFillColor(sf::Color::Yellow);
-    this->board.energy_lvl_caption.setString("energy");
+    board.energy_lvl_caption.setCharacterSize(height/30);
+    board.energy_lvl_caption.setFont(font);
+    board.energy_lvl_caption.setPosition(width*0.01, height*0.94);
+    board.energy_lvl_caption.setFillColor(sf::Color (250, 200, 200));
+    board.energy_lvl_caption.setString("energy");
 
-    this->board.energy_lvl_back.setPosition(0, 0.95*height);
-    this->board.energy_lvl_back.setSize(sf::Vector2((width/3)*1.f, (height/30)*1.f));
-    this->board.energy_lvl_back.setFillColor(sf::Color::Black);
+    board.energy_lvl_back.setPosition(0, 0.95*height);
+    board.energy_lvl_back.setSize(sf::Vector2((width/3)*1.f, (height/30)*1.f));
+    board.energy_lvl_back.setFillColor(sf::Color::Black);
 
-    this->board.board.setPosition(0, height*0.93);
-    this->board.board.setSize(sf::Vector2(width*1.f, (height/15)*1.f));
-    this->board.board.setFillColor(sf::Color::White);
+    board.board.setPosition(0, height*0.93);
+    board.board.setSize(sf::Vector2(width*1.f, (height/15)*1.f));
+    board.board.setFillColor(sf::Color::White);
 
     //this->board.spawn_base.picture.setPosition(1725, 1445);
     //this->board.spawn_base.picture.setSize(sf::Vector2(50.f, 50.f));
@@ -475,19 +482,17 @@ void Game::initBase() {
 
 void Game::initBaseMenu(){
     BaseMenu menu_ = BaseMenu();
-    Point a = Point(mouse.get_x(), mouse.get_y());
+    Point a = mouse;
     for (int i = 0; i < 7; i++){
+        bases[i].is_selected = false;
         if (bases[i].is_in_base(a)){
+            menu_.picture.setFillColor(sf::Color(255, 255, 255, 150));
             menu_.picture.setSize(sf::Vector2f(width / 4, height / 4));
             menu_.picture.setOutlineColor(sf::Color::Red);
             menu_.picture.setOutlineThickness(5);
-            menu_.picture.setPosition(width / 4 * 3, height / 4 * 3 - 5);
+            menu_.picture.setPosition(bases[i].pos.get_x(), bases[i].pos.get_y());
             bases[i].menu = menu_;
             bases[i].is_selected = true;
-            return;
-        }
-        else{
-            bases[i].is_selected = false;
         }
     }
 }
@@ -566,19 +571,92 @@ void Game::box (){
     area.setFillColor(sf::Color(0, 0, 0, 0));
 }
 
+void Game::updateEnemy() {
+    enemy_animals.clear();
+    sendInfo();
+    receiveInfo();
+}
+
+void Game::sendInfo() {
+    text = std::to_string(simple_animals.size());
+    text += '_';
+    for(int i = 0; i < simple_animals.size(); i++){
+        text += std::to_string(simple_animals[i].pos.get_x());
+        text += '_';
+        text += std::to_string(simple_animals[i].pos.get_y());
+        text += '_';
+    }
+    socket.send(text.c_str(), text.length() + 1);
+}
+
+void Game::receiveInfo() {
+    char buffer[2000];
+    socket.receive(buffer, sizeof(buffer), received);
+    int number_of_enemies;
+    std::string b = "";
+    int k = 0;
+    while (buffer[k] != '_'){
+        b += buffer[k];
+        k++;
+    }
+    number_of_enemies = std::stoi(b);
+
+    for(int i = 0; i < number_of_enemies; i++){
+        Point pos;
+        k++;
+        b = "";
+        while (buffer[k] != '_'){
+            b += buffer[k];
+            k++;
+        }
+        pos.set_x(std::stoi(b));
+        k++;
+        b = "";
+        while (buffer[k] != '_'){
+            b += buffer[k];
+            k++;
+        }
+        pos.set_y(std::stoi(b));
+        Simple_Animal enemy = Simple_Animal(energy, 100, 5, pos, pos);
+        enemy.picture.setFillColor(sf::Color::Cyan);
+        enemy.picture.setRadius(enemy.size);
+        enemy.picture.setPosition(enemy.get_pos().get_x(), enemy.get_pos().get_y());
+        enemy.picture.setOrigin(enemy.size, enemy.size);
+        enemy_animals.push_back(enemy);
+    }
+
+}
+
+bool Game::connect_to_server() {
+    char buffer[2000];
+    username = "Egor";
+    sf::IpAddress ip = "192.168.0.103";
+    sf::TcpSocket::Status connection = socket.connect(ip, 2000);
+    if(connection == sf::Socket::Done) {
+        is_connected = true;
+        std::cout << ip << endl;
+        socket.receive(buffer, sizeof(buffer), received);
+        socket.send(username.c_str(), username.length() + 1);
+        std::cout << buffer << endl;
+        std::cout << "Waiting for the second player..." << endl;
+        socket.receive(buffer, sizeof(buffer), received);
+        std::cout << buffer << endl;
+        std::cout << "Game will be started soon..." << endl;
+    } else std::cout << "You are offline" << endl;
+    return is_connected;
+}
+
 //------------------------------------------------------GAME LOOP-------------------------------------------------------
     int main() {
-        font.loadFromFile("/home/egorchan/CLionProjects/Chillness/Chillness_1.1.2_/20326.otf");
+        font.loadFromFile("/home/egorchan/CLionProjects/Chillness/font_1.ttf");
 //Init Game
         Game game;
 //Game loop
         while(game.running())
         {
 //Update
-
             game.update();
 //Render
-
             game.render();
         }
         return 0;

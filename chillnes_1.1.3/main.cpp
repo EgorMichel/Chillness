@@ -187,7 +187,6 @@ void Simple_Animal::draw() {
     this->picture.setFillColor(this->color);
     this->picture.setOutlineThickness(0);
     this->picture.setOutlineColor(white);
-    simple_animals.push_back(this);
 }
 
 void Simple_Animal::attack(Animal* opponent){
@@ -747,21 +746,21 @@ void Game::receiveInfo() {
 }
 
 bool Game::connect_to_server() {
-//    char buffer[2000];
-//    username = "Egor";
-//    sf::IpAddress ip = "192.168.0.103";
-//    sf::TcpSocket::Status connection = socket.connect(ip, 2000);
-//    if(connection == sf::Socket::Done) {
-//        is_connected = true;
-//        std::cout << ip << endl;
-//        socket.receive(buffer, sizeof(buffer), received);
-//        socket.send(username.c_str(), username.length() + 1);
-//        std::cout << buffer << endl;
-//        std::cout << "Waiting for the second player..." << endl;
-//        socket.receive(buffer, sizeof(buffer), received);
-//        std::cout << buffer << endl;
-//        std::cout << "Game will be started soon..." << endl;
-//    } else std::cout << "You are offline" << endl;
+    char buffer[2000];
+    username = "Egor";
+    sf::IpAddress ip = "192.168.0.103";
+    sf::TcpSocket::Status connection = socket.connect(ip, 2000);
+    if(connection == sf::Socket::Done) {
+        is_connected = true;
+        std::cout << ip << endl;
+        socket.receive(buffer, sizeof(buffer), received);
+        socket.send(username.c_str(), username.length() + 1);
+        std::cout << buffer << endl;
+        std::cout << "Waiting for the second player..." << endl;
+        socket.receive(buffer, sizeof(buffer), received);
+        std::cout << buffer << endl;
+        std::cout << "Game will be started soon..." << endl;
+    } else std::cout << "You are offline" << endl;
     return is_connected;
 }
 

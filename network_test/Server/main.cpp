@@ -1,6 +1,3 @@
-//Chat Server
-//#include "server_network.h"
-
 using namespace std;
 #include <iostream>
 #include <SFML/Network.hpp>
@@ -12,13 +9,14 @@ int main(){
     struct player{
         string old_m = "";
         string username;
+        string resolution;
     };
 
     vector<player> clients;
     sf::TcpSocket socket1, socket2;
-    char buffer[2000];
 
-    size_t received;
+
+    size_t received_1, received_2;
     sf::TcpListener listener;
     listener.listen(2000, ip);
     for(int i = 0; i < 2; i++) {
@@ -27,55 +25,68 @@ int main(){
         clients.push_back(p);
         string text = "Connected to server!";
         if(i == 0) {
+            char buffer[2000];
             listener.accept(socket1);
-            socket1.send(text.c_str(), text.length() + 1);
-            socket1.receive(buffer, sizeof(buffer), received);
+            socket1.receive(buffer, sizeof(buffer), received_1);
             cout << buffer << endl;
             clients[i].username = buffer;
+
         }
         else
         {
+            char buffer[2000];
             listener.accept(socket2);
-            socket2.send(text.c_str(), text.length() + 1);
-            socket2.receive(buffer, sizeof(buffer), received);
-            cout << buffer << endl;}
+            socket2.receive(buffer, sizeof(buffer), received_2);
+            cout << buffer << endl;
             clients[i].username = buffer;
+        }
+
+
+        //clients[i].resolution = buffer;
 
     }
-    std::string text = "We are starting!";
+    std::string text = "LET'S GO";
     socket1.send(text.c_str(), text.length() + 1);
     socket2.send(text.c_str(), text.length() + 1);
+/*    std::string text = "";
+    if(std::stoi(clients[0].resolution) > std::stoi(clients[1].resolution)) text = clients[1].resolution;
+    else text = clients[0].resolution;
+    socket1.send(text.c_str(), text.length() + 1);
+    socket2.send(text.c_str(), text.length() + 1);*/
 
     bool done = false;
-    std::string received_1, received_2;
+    std::string message_1, message_2;
     while(!done){
         //text = "sent from server...";
         //socket.send(text.c_str(), text.length() + 1);
         for(int i = 0; i < clients.size(); i++) {
             if(i == 0) {
-                socket1.receive(buffer, sizeof(buffer), received);
-                received_1 = buffer;
+                char buffer[2000];
+                socket1.receive(buffer, sizeof(buffer), received_1);
+                message_1 = buffer;
                 if (buffer != clients[i].old_m)
-                    std::cout << "Received from " << clients[i].username << ": " << buffer << endl;
+                    std::cout << "Received from " << clients[i].username << ": " << message_1 << endl;
                 clients[i].old_m = buffer;
                 if (buffer == "stop") done = true;
             }
             else {
-                socket2.receive(buffer, sizeof(buffer), received);
-                received_2 = buffer;
+                char buffer[2000];
+                socket2.receive(buffer, sizeof(buffer), received_2);
+                message_2 = buffer;
                 if (buffer != clients[i].old_m)
-                    std::cout << "Received from " << clients[i].username << ": " << buffer << endl;
+                    std::cout << "Received from " << clients[i].username << ": " << message_2  << endl;
                 clients[i].old_m = buffer;
                 if (buffer == "stop") done = true;
             }
         }
 
+
         for(int i = 0; i < clients.size(); i++) {
             if(i == 0) {
-                socket1.send(received_2.c_str(), received_2.length() + 1);
+                socket1.send(message_2.c_str(), message_2.length() + 1);
             }
             else {
-                socket2.send(received_1.c_str(), received_1.length() + 1);
+                socket2.send(message_1.c_str(), message_1.length() + 1);
             }
         }
 

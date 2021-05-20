@@ -1,10 +1,24 @@
 using namespace std;
 #include <iostream>
 #include <SFML/Network.hpp>
+#include <SFML/Graphics.hpp>
 #include <string>
 #include <vector>
 
 int main(){
+//    unsigned int height = sf::VideoMode::getDesktopMode().height;
+//    unsigned int width = sf::VideoMode::getDesktopMode().width;
+//    sf::RenderWindow* window;
+//    sf::VideoMode videoMode;
+//    videoMode.height = height;
+//    videoMode.width = width;
+//    window = new sf::RenderWindow(videoMode, "Server", sf::Style::Titlebar);
+//    window->setSize(sf::Vector2(width/3, height/3));
+//    window->clear(sf::Color(153, 100, 0));
+//    sf::Text serv;
+//    serv.setFillColor(sf::Color(100, 0, 50));
+    //window->display();
+
     sf::IpAddress ip = sf::IpAddress::getLocalAddress();
     struct player{
         string old_m = "";

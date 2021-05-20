@@ -45,9 +45,10 @@ int main(){
         //clients[i].resolution = buffer;
 
     }
-    std::string text = "LET'S GO";
-    socket1.send(text.c_str(), text.length() + 1);
-    socket2.send(text.c_str(), text.length() + 1);
+    std::string text_1 = "1";
+    std::string text_2 = "-1";
+    socket1.send(text_1.c_str(), text_1.length() + 1);
+    socket2.send(text_2.c_str(), text_2.length() + 1);
 /*    std::string text = "";
     if(std::stoi(clients[0].resolution) > std::stoi(clients[1].resolution)) text = clients[1].resolution;
     else text = clients[0].resolution;
@@ -61,7 +62,7 @@ int main(){
         //socket.send(text.c_str(), text.length() + 1);
         for(int i = 0; i < clients.size(); i++) {
             if(i == 0) {
-                char buffer[2000];
+                char buffer[20000];
                 socket1.receive(buffer, sizeof(buffer), received_1);
                 message_1 = buffer;
                 if (buffer != clients[i].old_m)
@@ -70,7 +71,7 @@ int main(){
                 if (buffer == "stop") done = true;
             }
             else {
-                char buffer[2000];
+                char buffer[20000];
                 socket2.receive(buffer, sizeof(buffer), received_2);
                 message_2 = buffer;
                 if (buffer != clients[i].old_m)
